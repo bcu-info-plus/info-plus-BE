@@ -7,7 +7,6 @@ import lombok.Data;
 @Data
 @Table(name = "Images")
 public class Image {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int imageId;
@@ -22,5 +21,4 @@ public class Image {
 
     @Column(nullable = false, length = 255)
     private String imageUrl;
-
 }

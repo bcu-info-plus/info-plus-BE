@@ -36,7 +36,7 @@ public class Post {
     @Column(nullable = false)
     private IsDeleted isDeleted;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Image> images;
 
 }
