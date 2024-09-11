@@ -29,6 +29,15 @@ public class Post {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(nullable = false, length = 255)
+    private String major;
+
+    @Column(nullable = false)
+    private Long likesCount;
+
+    @Column(nullable = false)
+    private Long commentsCount;
+
     @Column(nullable = false)
     private LocalDateTime localDateTime;
 
