@@ -16,21 +16,37 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    public String generateToken(String username, Map<String, Object> additionalClaims) {
+    // Access Token의 유효기간 (10시간)
+    private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 60 * 10;
+
+    // Refresh Token의 유효기간 (7일)
+    private final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7;
+
+    // Access Token과 Refresh Token을 동시에 발급
+    public Map<String, String> generateTokens(String username, Map<String, Object> additionalClaims) {
         Map<String, Object> claims = new HashMap<>(additionalClaims);
-        return createToken(claims, username);
+
+        String accessToken = createToken(claims, username, ACCESS_TOKEN_EXPIRATION);
+        String refreshToken = createToken(claims, username, REFRESH_TOKEN_EXPIRATION);
+
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("accessToken", accessToken);
+        tokens.put("refreshToken", refreshToken);
+        return tokens;
     }
 
-    private String createToken(Map<String, Object> claims, String subject) {
+    // 토큰을 생성하는 메서드 (유효기간을 전달받음)
+    private String createToken(Map<String, Object> claims, String subject, long expiration) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10시간 동안 유효
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(SignatureAlgorithm.HS256, secret)
                 .compact();
     }
 
+    // 토큰에서 모든 Claims를 추출하는 메서드
     public Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .setSigningKey(secret)
@@ -38,16 +54,30 @@ public class JwtUtil {
                 .getBody();
     }
 
+    // 토큰에서 username을 추출하는 메서드
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
 
+    // 토큰이 만료되었는지 확인하는 메서드
+    private boolean isTokenExpired(String token) {
+        return extractAllClaims(token).getExpiration().before(new Date());
+    }
+
+    // Access Token을 검증하는 메서드
     public boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);
         return (extractedUsername.equals(username) && !isTokenExpired(token));
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractAllClaims(token).getExpiration().before(new Date());
+    // Refresh Token을 사용하여 새로운 Access Token 발급
+    public String generateNewAccessToken(String refreshToken, String username) {
+        if (isTokenExpired(refreshToken)) {
+            throw new IllegalArgumentException("Refresh Token has expired");
+        }
+
+        // Refresh Token이 유효하면 새로운 Access Token 발급
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, username, ACCESS_TOKEN_EXPIRATION);
     }
 }

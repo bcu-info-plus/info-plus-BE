@@ -33,10 +33,10 @@ public class Post {
     private String major;
 
     @Column(nullable = false)
-    private Long likesCount;
+    private Long likesCount = 0L;
 
     @Column(nullable = false)
-    private Long commentsCount;
+    private Long commentsCount = 0L;
 
     @Column(nullable = false)
     private LocalDateTime localDateTime;
