@@ -29,14 +29,28 @@ public class UserController {
     public ResponseEntity<?> getUserProfile(@RequestHeader("Authorization") String token) {
         try {
             // Bearer 토큰에서 실제 JWT 토큰 추출
-            String jwtToken = token.substring(7);
+            if (token == null || !token.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token format");
+            }
 
-            // JWT 토큰에서 이메일 추출
-            String email = jwtUtil.extractUsername(jwtToken);
+            String jwtToken = token.substring(7); // "Bearer " 이후의 JWT 토큰 부분만 추출
+
+            // JWT 토큰에서 이메일 추출 (예외 처리 추가)
+            String email;
+            try {
+                email = jwtUtil.extractUsername(jwtToken);
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
+            }
 
             // 이메일로 사용자 정보 로드
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+            User user;
+            try {
+                user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+            } catch (UsernameNotFoundException ex) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with email: " + email);
+            }
 
             // 사용자 정보를 반환 (nickname, name, email, profileImage 가정)
             Map<String, Object> userProfile = new HashMap<>();
@@ -49,7 +63,10 @@ public class UserController {
             return ResponseEntity.ok(userProfile);
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
+            // 로깅 추가하여 에러를 확인
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
         }
     }
+
 }

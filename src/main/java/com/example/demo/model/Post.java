@@ -33,12 +33,6 @@ public class Post {
     private String major;
 
     @Column(nullable = false)
-    private Long likesCount = 0L;
-
-    @Column(nullable = false)
-    private Long commentsCount = 0L;
-
-    @Column(nullable = false)
     private LocalDateTime localDateTime;
 
     @Enumerated(EnumType.STRING)
@@ -47,5 +41,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Image> images;
+
+    private Long likesCount = 0L; // 좋아요 수 캐싱
 
 }

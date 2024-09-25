@@ -4,11 +4,15 @@ import com.example.demo.dto.PostRequestDTO;
 import com.example.demo.model.BoardType;
 import com.example.demo.model.Post;
 import com.example.demo.model.User;
+import com.example.demo.repository.PostRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.service.CustomUserDetails;
+import com.example.demo.service.PostLikeService;
 import com.example.demo.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -20,6 +24,10 @@ public class PostController {
 
     @Autowired
     private PostService postService;
+    @Autowired
+    private PostRepository postRepository;
+    @Autowired
+    private PostLikeService postLikeService;
 
     @GetMapping
     public ResponseEntity<List<Post>> getAllPosts(@RequestParam(required = false) String boardType) {
@@ -34,7 +42,7 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    public Post getPostById(@PathVariable int id) {
+    public Post getPostById(@PathVariable Long id) {
         return postService.findById(id);
     }
 
@@ -53,8 +61,70 @@ public class PostController {
         }
     }
 
+    // 게시글 삭제 (soft delete)
     @DeleteMapping("/{id}")
-    public void deletePost(@PathVariable int id) {
-        postService.delete(id);
+    public ResponseEntity<Void> deletePost(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        User user = customUserDetails.getUser();  // 현재 로그인한 사용자의 정보 가져오기
+
+        try {
+            // 게시글 삭제 요청
+            postService.deletePost(id, user);
+            return ResponseEntity.ok().build();  // 성공적으로 삭제되었을 경우 200 OK 반환
+        } catch (RuntimeException e) {
+            // 권한이 없거나 게시글이 없는 경우 403 Forbidden 또는 404 Not Found 처리
+            return ResponseEntity.status(403).build();  // 403 Forbidden
+        }
+    }
+
+    // 게시글 수정
+    @PutMapping("/{id}")
+    public ResponseEntity<Post> updatePost(
+            @PathVariable Long id,
+            @RequestBody PostRequestDTO postRequest,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        // 현재 로그인한 사용자의 User 객체 가져오기
+        User user = customUserDetails.getUser();
+
+        try {
+            // 게시글 수정 요청
+            Post updatedPost = postService.updatePost(id, postRequest, user);
+            return ResponseEntity.ok(updatedPost);  // 성공적으로 수정된 게시글 반환
+        } catch (RuntimeException e) {
+            // 권한이 없거나 게시글이 없는 경우 예외 처리
+            return ResponseEntity.status(403).body(null);  // 403 Forbidden
+        }
+    }
+
+    // 좋아요 토글 API
+    @PostMapping("/{postId}/like")
+    public String toggleLike(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        boolean liked = postLikeService.toggleLike(customUserDetails.getUser(), post);
+
+        if (liked) {
+            postLikeService.likePost(postId, customUserDetails.getUser());
+            return "좋아요가 추가되었습니다.";
+        } else {
+            postLikeService.unlikePost(postId, customUserDetails.getUser());
+            return "좋아요가 취소되었습니다.";
+        }
+    }
+
+    // 게시물의 좋아요 수 조회 API
+    @GetMapping("/{postId}/likes")
+    public Long getLikeCount(@PathVariable Long postId) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        return postLikeService.getLikeCount(post);
+    }
+
+    // 게시물 좋아요 눌렀는지 확인 API
+    @GetMapping("/{postId}/isliked")
+    public boolean checkIsLiked(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        return postLikeService.isLiked(customUserDetails.getUser(), post);
     }
 }
