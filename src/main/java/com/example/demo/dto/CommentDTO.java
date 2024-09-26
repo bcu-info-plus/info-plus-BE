@@ -8,14 +8,16 @@ import java.time.LocalDateTime;
 public class CommentDTO {
     private Long commentId;
     private String content;
+    private Long userId;
     private String authorName;
     private String authorMajor;
     private LocalDateTime createdAt;
     private Long parentId; // 부모 댓글 ID 추가
 
-    public CommentDTO(Long commentId, String content, String authorName, String authorMajor, LocalDateTime createdAt, Long parentId) {
+    public CommentDTO(Long commentId, String content, Long userId, String authorName, String authorMajor, LocalDateTime createdAt, Long parentId) {
         this.commentId = commentId;
         this.content = content;
+        this.userId = userId;
         this.authorName = authorName;
         this.authorMajor = authorMajor;
         this.createdAt = createdAt;

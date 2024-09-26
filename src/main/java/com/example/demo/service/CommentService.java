@@ -52,12 +52,15 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
 
+
+
         // Comment 엔티티를 DTO로 변환하여 반환
         return new CommentDTO(
                 savedComment.getCommentId(),
                 savedComment.getContent(),
-                savedComment.getUser().getName(),
-                savedComment.getUser().getMajor(),
+                savedComment.getUser().getUserId(), // userId 추가
+                savedComment.getUser().getName(), // authorName 설정
+                savedComment.getUser().getMajor(), // authorMajor 설정
                 savedComment.getCreatedAt(),
                 savedComment.getParent() != null ? savedComment.getParent().getCommentId() : null // 부모 ID 추가
         );
@@ -91,6 +94,7 @@ public class CommentService {
                 .map(comment -> new CommentDTO(
                         comment.getCommentId(),
                         comment.getContent(),
+                        comment.getUser().getUserId(),   // userId (세미콜론 제거)
                         comment.getUser().getName(),     // 작성자 이름
                         comment.getUser().getMajor(),    // 작성자 학과
                         comment.getCreatedAt(),
@@ -103,5 +107,32 @@ public class CommentService {
     public Long countCommentsByPostId(Long postId) {
         return commentRepository.countByPostIdAndIsDeletedLive(postId);
     }
+
+    public CommentDTO updateComment(Long commentId, String newContent, User user) {
+        // 댓글 조회
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다."));
+
+        // 작성자가 같은지 확인
+        if (!comment.getUser().getUserId().equals(user.getUserId())) {
+            throw new RuntimeException("댓글 수정 권한이 없습니다.");
+        }
+
+        // 댓글 내용 수정
+        comment.setContent(newContent);
+        commentRepository.save(comment); // 수정 후 저장
+
+        // 수정된 댓글을 DTO로 변환하여 반환
+        return new CommentDTO(
+                comment.getCommentId(),
+                comment.getContent(),
+                comment.getUser().getUserId(),
+                comment.getUser().getName(),
+                comment.getUser().getMajor(),
+                comment.getCreatedAt(),
+                comment.getParent() != null ? comment.getParent().getCommentId() : null
+        );
+    }
+
 
 }

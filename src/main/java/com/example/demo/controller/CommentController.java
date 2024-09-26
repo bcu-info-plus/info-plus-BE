@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/comments")
@@ -57,5 +58,20 @@ public class CommentController {
     public ResponseEntity<Long> getCommentCountByPost(@PathVariable Long postId) {
         Long count = commentService.countCommentsByPostId(postId);
         return ResponseEntity.ok(count);
+    }
+
+
+    // 댓글 수정 API
+    @PutMapping("/comments/{id}")
+    public ResponseEntity<CommentDTO> updateComment(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        String newContent = request.get("content");
+
+        CommentDTO updatedCommentDTO = commentService.updateComment(id, newContent, customUserDetails.getUser());
+
+        return ResponseEntity.ok(updatedCommentDTO);  // 수정된 댓글 정보 반환
     }
 }
