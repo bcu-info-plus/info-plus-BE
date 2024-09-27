@@ -1,13 +1,21 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "Posts")
 public class Post {
 
@@ -40,8 +48,8 @@ public class Post {
     private IsDeleted isDeleted;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference  // 양방향 참조 방지 (부모 측)
     private Set<Image> images;
 
-    private Long likesCount = 0L; // 좋아요 수 캐싱
-
+    private Long likesCount = 0L;
 }

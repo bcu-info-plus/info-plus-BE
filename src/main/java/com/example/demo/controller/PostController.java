@@ -47,16 +47,22 @@ public class PostController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createPost(@RequestBody PostRequestDTO postRequest) {
+    public ResponseEntity<?> createPost(@ModelAttribute PostRequestDTO postRequest) {
+        System.out.println("Request received: " + postRequest.getTitle());
+
         try {
             // 서비스 레이어에서 비즈니스 로직 처리 및 저장
             Post savedPost = postService.savePost(postRequest);
+            System.out.println("Post saved with ID: " + savedPost.getPostId());
             return ResponseEntity.ok(savedPost);
         } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (RuntimeException e) {
+            System.err.println("Error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
         }
     }
@@ -81,10 +87,12 @@ public class PostController {
 
     // 게시글 수정
     @PutMapping("/{id}")
-    public ResponseEntity<Post> updatePost(
+    public ResponseEntity<?> updatePost(
             @PathVariable Long id,
-            @RequestBody PostRequestDTO postRequest,
+            @ModelAttribute PostRequestDTO postRequest,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        System.out.println("Update request received for post ID: " + id + ", title: " + postRequest.getTitle());
 
         // 현재 로그인한 사용자의 User 객체 가져오기
         User user = customUserDetails.getUser();
@@ -92,10 +100,17 @@ public class PostController {
         try {
             // 게시글 수정 요청
             Post updatedPost = postService.updatePost(id, postRequest, user);
+            System.out.println("Post updated with ID: " + updatedPost.getPostId());
             return ResponseEntity.ok(updatedPost);  // 성공적으로 수정된 게시글 반환
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (RuntimeException e) {
-            // 권한이 없거나 게시글이 없는 경우 예외 처리
-            return ResponseEntity.status(403).body(null);  // 403 Forbidden
+            System.err.println("Error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
         }
     }
 
